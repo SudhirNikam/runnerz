@@ -2,7 +2,7 @@ Reference:
 1. https://www.youtube.com/watch?v=31KTdfRH6nY&t=2711s&ab_channel=freeCodeCamp.org
 2. https://shrihariharidas73.medium.com/deploying-a-simple-web-application-to-aws-ecs-with-github-actions-and-terraform-dd57200baa50
 
-H2 Console is available at: http://localhost:8080/h2-console
+H2 Console is available at: http://localhost:80/h2-console
 
 user: sa 
 password: no needed
