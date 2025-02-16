@@ -1,0 +1,134 @@
+#Security group for ECS task
+resource "aws_security_group" "sg_ecs_tasks" {
+  name = "${var.project_name}-ecs-task-sg"
+  description = "Allow Inbound Traffic to ECS tasks"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    description = "Allow HTTP inbound"
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-ecs-task-sg"
+    Environment = var.environment
+  }
+}
+
+# ECR Repository
+resource "aws_ecr_repository" "ecr_app" {
+  name = "${var.project_name}-app"
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+# ECS Cluster
+resource "aws_ecs_cluster" "ecs_cluster" {
+  name = "${var.project_name}-cluster"
+
+  tags = {
+    Name = "${var.project_name}-ecs-cluster"
+    Environment = var.environment
+  }
+}
+
+# ECS Task Execution Role
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "${var.project_name}-ecs-task-execution-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+  })
+}
+
+# Attach the AWS managed policy for ECS task execution
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+  role = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ECS Task Execution
+resource "aws_ecs_task_definition" "ecs_task_definition" {
+  family                = "${var.project_name}-task"
+  network_mode          = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu = 256
+  memory = 512
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name = "${var.project_name}-container"
+      image = "${aws_ecr_repository.ecr_app.repository_url}:latest"
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort = 80
+          protocol = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group" = "/ecs/${var.project_name}"
+          "awslogs-region" = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    Name = "${var.project_name}-task-definition"
+    Environment = var.environment
+  }
+}
+
+#Cloudwatch log group
+resource "aws_cloudwatch_log_group" "ecs_logs" {
+  name = "/ecs/${var.project_name}"
+  retention_in_days = 30
+
+  tags = {
+    Name = "${var.project_name}-logs"
+    Environment = var.environment
+  }
+  }
+
+# ECS Service
+resource "aws_ecs_service" "ecs_app" {
+  name = "${var.project_name}-service"
+  cluster = aws_ecs_cluster.ecs_cluster.id
+  task_definition = aws_ecs_task_definition.ecs_task_definition.arn
+  desired_count = 2
+  launch_type = "FARGATE"
+
+  network_configuration {
+    subnets = aws_subnet.public[*].id
+    security_groups = [aws_security_group.sg_ecs_tasks.id]
+    assign_public_ip = true
+  }
+
+  tags = {
+    Name = "${var.project_name}-ecs-service"
+    Environment = var.environment
+  }
+}

@@ -3,10 +3,7 @@ package org.rk.javauniverse.webapp.runnerz.run;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import javax.swing.text.html.Option;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,27 +22,27 @@ public class RunController {
         return runRepository.findAll();
     }
 
-    @GetMapping("/{id}")
-    Run findById(@PathVariable Integer id){
-        Optional<Run> run =  runRepository.findById(id);
-        if (run.isEmpty()){
-            throw new RunNotFoundException();
-        }
-
-        return run.get();
-    }
-
-    @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping("/create")
-    void create(@Valid @RequestBody Run run){
-        runRepository.create(run);
-    }
-
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PutMapping("/update/{id}")
-    void update(@Valid @RequestBody Run run, @PathVariable Integer id){
-        runRepository.update(run, id);
-    }
+//    @GetMapping("/{id}")
+//    Run findById(@PathVariable Integer id){
+//        Optional<Run> run =  runRepository.findById(id);
+//        if (run.isEmpty()){
+//            throw new RunNotFoundException();
+//        }
+//
+//        return run.get();
+//    }
+//
+//    @ResponseStatus(HttpStatus.CREATED)
+//    @PostMapping("/create")
+//    void create(@Valid @RequestBody Run run){
+//        runRepository.create(run);
+//    }
+//
+//    @ResponseStatus(HttpStatus.NO_CONTENT)
+//    @PutMapping("/update/{id}")
+//    void update(@Valid @RequestBody Run run, @PathVariable Integer id){
+//        runRepository.update(run, id);
+//    }
 
 
 
